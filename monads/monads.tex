@@ -1,0 +1,565 @@
+\chapter{Monads}
+In the world of computer science, monads are often considered mysterious and difficult to grasp. In traditional programming languages like Java and C++, a programmer may never even hear about monads. There is no such monad typeclass in these languages. However, the monad is an extremely useful and flexible concept in functional programming. Because it's used in such disparate cases it can be hard to understand the underlying structure of monads from examples alone. Luckily, we have our categorical toolbelt.
+
+\section{Monads, categorically speaking}
+\subsection{Definition}
+What are monads? Put simply, monads are monoids in the category of endofunctors. They're just a special case of our trustworthy monoids. We're already halfway there.
+
+\hfill
+
+Let's go through our data for monoids, see how monads are different:
+\begin{itemize}
+    \item In a monoid recall we have a set \textit{M}, here our set \textit{M} lives in the world of endofunctors, i.e. functors from a category to itself. Thus our $M\in Fun(\mathcal{C},\mathcal{C})$ and its objects are functors from \mathcal{C} to itself.
+    \item Because we are dealing with functors, our binary operator will then be the natural transformation of our functors $\mu:M \circ M \Rightarrow M$
+    \item Finally, our identity element $e$ here will be the unit natural transformation $\eta: 1_C \Rightarrow M$
+\end{itemize}
+Now, we need all of these things such that we have the following diagrams commuting:
+
+\hfill
+
+\begin{tikzcd}
+	M && {M\circ M} && M \\
+	\\
+	&& M
+	\arrow[Rightarrow, from=1-3, to=3-3]
+	\arrow["id_M\circ \eta"{description}, Rightarrow, from=1-5, to=1-3]
+	\arrow["\eta\circ id_M"{description}, Rightarrow, from=1-1, to=1-3]
+	\arrow["{id_M}"{description}, Rightarrow, from=1-5, to=3-3]
+	\arrow["{id_M}"{description}, Rightarrow, from=1-1, to=3-3]
+\end{tikzcd}
+\begin{tikzcd}
+	{M\circ M \circ M} && {M \circ M} \\
+	\\
+	{M \circ M} && M
+	\arrow["id_M\circ\mu"{description}, Rightarrow, from=1-1, to=1-3]
+	\arrow["\mu"{description}, Rightarrow, from=1-3, to=3-3]
+	\arrow["{\mu \circ id_M}"{description}, Rightarrow, from=1-1, to=3-1]
+	\arrow["\mu"{description}, Rightarrow, from=3-1, to=3-3]
+\end{tikzcd}
+
+\hfill
+
+These diagrams seem quite abstract; let's ground ourselves in examples.
+
+\subsection{Examples}
+\subsubsection{Example: Adjunction}
+
+Adjunction is such a good example of a monad, that there is even a lemma about it: \textit{Any adjunction gives rise to a monad on the category \mathcal{C} serving as the domain of the left adjoint, with:}
+\begin{tikzcd}
+	C && D
+	\arrow["L", shift left=2, from=1-1, to=1-3]
+	\arrow["R", shift left=2, from=1-3, to=1-1]
+\end{tikzcd}
+where $L\dashv R,~ $ unit $\eta:1_C \Rightarrow RL,~ $ counit $ \mathcal{E}: LR \Rightarrow 1_C$
+\begin{itemize}
+    \item the endofunctor $M:= RL$ that goes from $C \rightarrow D \rightarrow C$
+    \item the unit $\eta:1_c \Rightarrow RL$ which is our $e:1_C \Rightarrow M$
+    \item the binary operator $RLRL \Rightarrow RL$ as the multiplication $M\circ M \Rightarrow M$
+\end{itemize}
+
+First, we know that this diagram commutes:
+% https://q.uiver.app/?q=WzAsNCxbMCwwLCJSTCJdLFsyLDAsIlJMUkwiXSxbNCwwLCJSTCJdLFsyLDIsIlJMIl0sWzAsMSwiZVxcY2lyYyBSTCIsMCx7ImxldmVsIjoyfV0sWzIsMSwiUkwgXFxjaXJjIGUiLDIseyJsZXZlbCI6Mn1dLFsxLDMsIlJcXG1hdGhjYWx7RX1MIiwwLHsibGV2ZWwiOjJ9XSxbMiwzLCJpZF97Ukx9IiwwLHsibGV2ZWwiOjJ9XSxbMCwzLCJpZF97Ukx9IiwyLHsibGV2ZWwiOjJ9XV0=
+\begin{tikzcd}
+	RL && RLRL && RL \\
+	\\
+	&& RL
+	\arrow["{\eta\circ RL}", Rightarrow, from=1-1, to=1-3]
+	\arrow["{RL \circ \eta}"', Rightarrow, from=1-5, to=1-3]
+	\arrow["{R\mathcal{E}L}", Rightarrow, from=1-3, to=3-3]
+	\arrow["{id_{RL}}", Rightarrow, from=1-5, to=3-3]
+	\arrow["{id_{RL}}"', Rightarrow, from=1-1, to=3-3]
+\end{tikzcd}
+
+This is because in adjunction, we can use the counit $\mathcal{E}: LR \Rightarrow 1_C$ and see that 
+$$RLRL \Rightarrow R(LR)L \Rightarrow R(1_C)L \Rightarrow RL$$
+
+Second, we know this diagram also commutes:
+% https://q.uiver.app/?q=WzAsNCxbMCwwLCJSTFJMUkwiXSxbMiwwLCJSTFJMIl0sWzIsMiwiUkwiXSxbMCwyLCJSTFJMIl0sWzAsMSwiUkxSXFxtYXRoY2Fse0V9TCIsMCx7ImxldmVsIjoyfV0sWzEsMiwiUlxcbWF0aGNhbHtFfUwiLDAseyJsZXZlbCI6Mn1dLFswLDMsIlJcXG1hdGhjYWx7RX1MUkwiLDIseyJsZXZlbCI6Mn1dLFszLDIsIlJcXG1hdGhjYWx7RX1MIiwyLHsibGV2ZWwiOjJ9XV0=
+\begin{tikzcd}
+	RLRLRL && RLRL \\
+	\\
+	RLRL && RL
+	\arrow["{RLR\mathcal{E}L}", Rightarrow, from=1-1, to=1-3]
+	\arrow["{R\mathcal{E}L}", Rightarrow, from=1-3, to=3-3]
+	\arrow["{R\mathcal{E}LRL}"', Rightarrow, from=1-1, to=3-1]
+	\arrow["{R\mathcal{E}L}"', Rightarrow, from=3-1, to=3-3]
+\end{tikzcd}
+
+Similarly, because we have the counit $\mathcal{E}: LR \Rightarrow 1_C$ we are able to get 
+$$RLRLRL \Rightarrow RLR(LR)L \Rightarrow RLR(1_C)L \Rightarrow RLRL$$
+The argument for the other side of the square is almost identical.
+
+\subsubsection{Example: Maybe Monad}
+In category theory, the Maybe Monad is equivalent to the free $\dashv$ forgetful adjunction between ordinary and pointed sets. 
+
+% https://q.uiver.app/?q=WzAsMixbMCwwLCJTZXQiXSxbMiwwLCJTZXRfKiJdLFswLDEsIkwiLDAseyJvZmZzZXQiOi0yfV0sWzEsMCwiUiIsMCx7Im9mZnNldCI6LTJ9XV0=
+\begin{tikzcd}
+	Set && {Set_*}
+	\arrow["L", shift left=2, from=1-1, to=1-3]
+	\arrow["R", shift left=2, from=1-3, to=1-1]
+\end{tikzcd} where $L\dashv R$, $Set$ is the category of sets, and $Set_*$ is the category of pointed sets.
+
+\hfill
+
+\textit{Proof.}
+
+\hfill
+
+First, let's talk about what a pointed set is. In category $Set_*$, 
+\begin{itemize}
+    \item our objects are pairs $(X,x_0)$ where $X \in Set$ and $x_0 \in X$ a fixed "pointer", hence the "pointed set"
+    \item our morphisms are $f: (X,x_0) \rightarrow (Y,y_0)$ is any function $f: X\rightarrow Y$ such that $f(x_0) = y_0$
+\end{itemize}
+
+Now, we want to be able to define the data of this monad in such a way that the necessary diagrams commute.
+
+\hfill
+
+For the first direction of the adjunction, we need:
+\begin{align*}
+    L: Set &\rightarrow Set_* \\
+    X &\mapsto X_+
+\end{align*}
+where $X\in Set,~ X_+ \in Set_*$. We are able to do this when, given $X\in Set$, we define a new pointed set $X_+ := X \bigsqcup * $, the disjoint union of X and the new point $*$, set to be pointer $x_0$.
+
+\hfill
+
+And in the other direction (in its true forgetful fashion), we can define R as follows:
+\begin{align*}
+    R: Set_* &\rightarrow Set\\
+    (X,x_0) &\mapsto X
+\end{align*}
+
+Defining the unit, we have
+\begin{align*}
+    \eta: id_{Set} &\Rightarrow RL\\
+    \eta_X: X &\rightarrow X_+\\
+    a &\mapsto a
+\end{align*}
+(we just map elements $a\in X$ to corresponding $a\in X_+$)
+
+Now the counit,
+\begin{align*}
+    \mathcal{E}: LR &\Rightarrow id_{Set_*}\\
+    \mathcal{E}_{(X,x_0)}: X_+ &\rightarrow (X,x_0)\\
+    x &\mapsto x\\
+    * &\mapsto x_0
+\end{align*}
+(we just map each $x\in X$ to $x\in X_+$, then the extra point $*$ to $x_0$)
+
+\hfill
+
+With all of these maps set-up, let us finally show this is a monad.
+
+\hfill
+
+Now, our endofunctor $M:= RL : (-)_+: Set \Rightarrow Set$ (as it goes $Set \rightarrow Set_* \rightarrow Set$) where we map $X\mapsto X_+$ (going from $X\mapsto (X,x_0) \mapsto X_+$). 
+
+With this, we have the identity $id_{Set} \Rightarrow RL$ mapping $X\rightarrow X_+$.
+
+Finally, we define our binary operator as follows
+\begin{align*}
+    \mu: RLRL &\Rightarrow RL\\
+    (X_+)_+ &\rightarrow X_+\\
+    x &\mapsto x\\
+    (+,+') &\mapsto +
+\end{align*}
+where we just map each $x\in (X_+)_+$ to $x\in X_+$ then map the two extra poiners $(+,+')\in (X_+)_+$ to pointer $+ \in X_+$.
+
+As we've shown this to be a valid adjunction, we can use our adjunction lemma above to finish the proof showing this free $\dashv$ forgetful adjunction is a monad such that the diagrams commute.
+
+% https://q.uiver.app/?q=WzAsNCxbMCwwLCIoKFhfKylfKylfKyJdLFsyLDAsIihYXyspXysiXSxbMiwyLCJYXysiXSxbMCwyLCIoWF8rKV8rIl0sWzAsMSwiKFxcZXRhKV8rIl0sWzEsMiwiXFxldGFfWCJdLFswLDMsIlxcZXRhX3tYXyt9IiwyXSxbMywyLCJcXGV0YV9YIiwyXV0=
+\begin{tikzcd}
+	{((X_+)_+)_+} && {(X_+)_+} \\
+	\\
+	{(X_+)_+} && {X_+}
+	\arrow["{(\mu)_+}", from=1-1, to=1-3]
+	\arrow["{\mu_X}", from=1-3, to=3-3]
+	\arrow["{\mu_{X_+}}"', from=1-1, to=3-1]
+	\arrow["{\mu_X}"', from=3-1, to=3-3]
+\end{tikzcd}
+% https://q.uiver.app/?q=WzAsNSxbMiwwLCIoWF8rKV8rIl0sWzQsMCwiWF8rIl0sWzAsMCwiWF8rIl0sWzIsMiwiWF8rIl0sWzEsMF0sWzEsMCwiKGlkX1gpXysiLDJdLFsyLDAsImlkX3tYXyt9Il0sWzAsMywiXFxldGEiXSxbMiwzLCIxX3tYXyt9IiwyXSxbMSwzLCIxX3tYXyt9Il1d
+\begin{tikzcd}
+	{X_+} & {} & {(X_+)_+} && {X_+} \\
+	\\
+	&& {X_+}
+	\arrow["{(id_X)_+}"', from=1-5, to=1-3]
+	\arrow["{id_{X_+}}", from=1-1, to=1-3]
+	\arrow["\mu", from=1-3, to=3-3]
+	\arrow["{1_{X_+}}"', from=1-1, to=3-3]
+	\arrow["{1_{X_+}}", from=1-5, to=3-3]
+\end{tikzcd}
+
+\subsubsection{Example: List Monad}
+
+Another example is the list monad, something a programmer might see as the concatenation of strings. In category theory, the list monad is also known as the \textbf{free monoid monad} that is another adjunction itself.
+
+% https://q.uiver.app/?q=WzAsMixbMCwwLCJTZXQiXSxbMiwwLCJNb25vaWQiXSxbMCwxLCJMIiwwLHsib2Zmc2V0IjotMn1dLFsxLDAsIlIiLDAseyJvZmZzZXQiOi0yfV1d
+\begin{tikzcd}
+	Set && Monoid
+	\arrow["L", shift left=2, from=1-1, to=1-3]
+	\arrow["R", shift left=2, from=1-3, to=1-1]
+\end{tikzcd} where $L\dashv R$, $Set$ is the category of finite sets, and $Monoids$ is the category of monoids. Here,
+\begin{align*}
+    L: Set &\rightarrow Monoid\\
+    S &\mapsto \{\text{concatenated list of strings}\}\text{ for S = set of strings} \\
+    R : Monoid &\rightarrow Set\\
+    \{\text{concatenated list of strings}\} &\mapsto S \text{ (forgetting concatenation)}
+\end{align*}
+
+Now, the monad in this case comes with the following data:
+\begin{itemize}
+    \item endofunctor $M := RL: Set \Rightarrow Set$ maps $S \mapsto \displaystyle{\bigsqcup_{n\leq0} S^n}$ (disjoint union of strings of length $n$)
+    \item $\mu: RLRL \Rightarrow RL$ sends \{lists of lists\} $\mapsto$ \{lists on $S$\}
+    \item $\eta:$ identity $id_{Set} \Rightarrow RL$ sends $S\mapsto [S]$ singleton list
+\end{itemize}
+
+% https://q.uiver.app/?q=WzAsOCxbMCwyLCJSTCJdLFsyLDIsIlJMUkwiXSxbNCwyLCJSTCJdLFsyLDQsIlJMIl0sWzAsMSwiXFx7XFx0ZXh0e2xpc3RzIG9uIFN9XFx9Il0sWzIsMSwiXFx7XFx0ZXh0e3NpbmdsZXRvbiBsaXN0cyBvZiBsaXN0cyBvbiBTfVxcfSJdLFs0LDAsIlxce1xcdGV4dHtsaXN0cyBvbiBTfVxcfSJdLFsyLDAsIlxce1xcdGV4dHtsaXN0cyBvZiBzaW5nbGV0b24gbGlzdHMgb24gU31cXH0iXSxbMiwxLCJSTFxcY2lyYyBpZF97Ukx9IiwyXSxbMCwxLCJpZF97Ukx9XFxjaXJjIFJMIl0sWzAsMywiaWRfe1JMfSIsMl0sWzIsMywiaWRfe1JMfSJdLFs0LDUsIiIsMCx7InN0eWxlIjp7InRhaWwiOnsibmFtZSI6Im1hcHMgdG8ifX19XSxbNiw3LCIiLDIseyJzdHlsZSI6eyJ0YWlsIjp7Im5hbWUiOiJtYXBzIHRvIn19fV0sWzEsMywiXFxtdSJdXQ==
+\begin{tikzcd}
+	&& {\{\text{lists of singleton lists on S}\}} && {\{\text{lists on S}\}} \\
+	{\{\text{lists on S}\}} && {\{\text{singleton lists of lists on S}\}} \\
+	RL && RLRL && RL \\
+	\\
+	&& RL
+	\arrow["{RL\circ id_{RL}}"', from=3-5, to=3-3]
+	\arrow["{id_{RL}\circ RL}", from=3-1, to=3-3]
+	\arrow["{id_{RL}}"', from=3-1, to=5-3]
+	\arrow["{id_{RL}}", from=3-5, to=5-3]
+	\arrow[maps to, from=2-1, to=2-3]
+	\arrow[maps to, from=1-5, to=1-3]
+	\arrow["\mu", from=3-3, to=5-3]
+\end{tikzcd}
+
+In other words, 
+\begin{align*}
+     RL \rightarrow &RLRL\\
+    S_1\mapsto &[S_1]\\
+    &RLRL  \leftarrow RL\\
+    &[[a_1], [a_2],...,[a_n]] \leftarrow S_1~(a_i \in S_1)
+\end{align*}
+
+\subsection{Kleisli Category}
+One interesting and very computer-science-relevant concept is the Kleisli category. And as with any category, we understand it by its data. If $(M, \mu, \eta)$ is a monad on $C$, a Kleisli category ($=:C_M$) is a subcategory of $M$ such that:
+\begin{itemize}
+    \item its objects are the objects of category $C$
+    \item its morphisms are $\mu: A \rightarrow M(B) \in C$ when $A, B \in C$
+    \item its identity $A \rightarrow A$ corresponds to $\eta_A: A \rightarrow M(A)$ from our monad
+    \item and its composition of morphisms, $f: A \rightarrow M(B),~ g: B \rightarrow M(C)$ is defined as
+    
+% https://q.uiver.app/?q=WzAsNSxbMCwwLCJBIl0sWzIsMCwiTShCKSJdLFsyLDJdLFs0LDAsIk0oTShDKSkiXSxbNCwyLCJNKEMpIl0sWzAsMSwiXFxldGFfQSJdLFsxLDMsIk1cXGNpcmNcXGV0YV9CIl0sWzMsNCwiZV9DIl0sWzAsNCwiXFxldGFfQyIsMl1d
+\begin{tikzcd}
+	A && {M(B)} && {M(M(C))} \\
+	\\
+	&& {} && {M(C)}
+	\arrow["{f}", from=1-1, to=1-3]
+	\arrow["{Mg}", from=1-3, to=1-5]
+	\arrow["{\eta_C}", from=1-5, to=3-5]
+	\arrow["{}"', from=1-1, to=3-5]
+\end{tikzcd}
+\end{itemize} 
+
+\subsubsection{Example: Kleisli on Maybe Monad}
+On our Maybe Monad, we have the Kleisli category with the data:
+\begin{itemize}
+    \item our objects are sets in $Set$
+    \item morphisms between $A \rightarrow B \in Set_{Maybe}$ are functions $f: A \rightarrow B_+$ where $A\in Set, ~B_+ \in Set_*$
+\end{itemize}
+which in computer science behaves like a "partially defined function on A" where most elements $a\in A$ are sent to some $b\in B_+$, but also allowing us to send some elements $x \in A$ to the pointer + in $B_+$ possibly undefined.
+
+\subsubsection{Example: Kleisli on List Monad}
+On our List Monad, we have the Kleisli category with the data:
+\begin{itemize}
+    \item our objects are sets of strings in $Set$
+    \item morphisms between $A \rightarrow B \in Set_{Lists}$ are functions $f: S \rightarrow T$ where $S,T \in Set_{Lists}$
+\end{itemize}
+
+
+\section{Monads from a Programmer's Point of View}
+As we've said earlier, category theory is all about morphisms and composability. Haskell too is all about morphisms and composability, albeit in the category \textbf{SET}. Monads play an important role in the story of composability. On top of just the usual composition of functions, monads allow you to extend composability even further whilst keeping your modularity and abstraction between functions.
+
+\subsubsection{Example: The Bank}
+Say you're a bank and you wish to create a functional computer system that manages the banks' transactions. For simplicity let's say that you have these functions:
+
+\begin{lstlisting}
+    -- These functions are very over-simplified to illustrate the point
+    
+    -- login takes a string password and returns the account key
+    login :: String -> Int
+    
+    -- withdraw takes an account key and return the amount withdrawn
+    withdraw :: Int -> Float
+    
+    -- we can now compose them which takes some password and then withdraws from the account
+    withdraw . login
+\end{lstlisting}
+
+But now, a natural question, is what if we want to log our actions? In Haskell, functions are pure, which means that they have the same output for any input. Because of this, there are no global variables. This is a feature of Haskell. This is what facilitates composition. However, because of this, how would we create an audit trail for our bank program? 
+
+A natural solution is to pass in a log String and simply return the log string with the new log appended to it as an embellishment. Something like this,
+
+\begin{lstlisting}
+    -- old_login and old_withdraw would be the old implementations
+    -- of login and withdraw
+
+    -- Takes in two arguments and returns a pair
+    login :: String -> String -> (Int, String)
+    login x s = (old_login x, s') where
+      s' = s ++ " login"
+    
+    -- Takes in two arguments and returns a pair
+    withdraw :: Int -> String -> (Float, String)
+    withdraw x s = (old_withdraw x, s') where
+        s' = s ++ " withdraw"
+\end{lstlisting}
+
+Now, this approach will work (with some issues that we won't discuss), but there are two issues now. One, we are breaking privacy since each function can see the entire banking log history. But an even bigger concern, now our functions don't compose! Let's solve this problem with monads.
+
+\subsection{Haskell Monad Definition}
+Monads in Haskell can be seen as extending the notion of composition that is so loved in functional programming. Let's take a look at the definition:
+
+\begin{lstlisting}
+    class Functor m => Monad m where
+      return :: a -> m a
+      (>>=)  :: m a -> (a -> m b) -> m b
+\end{lstlisting}
+
+A Monad is defined with two operations, \lstinline{return} and \lstinline{(>>=)} which we'll refer to as bind. Like in category theory, monads are endofunctors. In this case, since every functor is an endofunctor in Haskell, that doesn't say much unfortunately. 
+
+\subsubsection{Exercise: Category Theory to Haskell}
+
+But, how does this relate to categorical monads? Well, we have two operations, just like in category theory. In category theory, we have two natural transformations, 
+\begin{align*}
+    \mu : M^2 &\Rightarrow M \\
+    \eta: 1_C &\Rightarrow M
+\end{align*}
+
+We can see that $\eta$ and \lstinline{return}. Return is how we get our monad types from our regular types. Remember with Haskell functors? We didn't actually mention a way to transform objects into \lstinline{Functor} types. 
+
+What about bind? We can actually construct this using $\mu$. So, what is bind? Bind is a natural transformation $\textbf{bind}_f: M \Rightarrow M$ together with some morphism $f : \mathcal{C} \rightarrow M(\mathcal{C})$, such that this diagram commutes:
+
+\begin{center}
+\begin{tikzcd}
+	{M(A)} && {M(M(B))} \\
+	\\
+	{} && {M(B)}
+	\arrow["{M(f)}", from=1-1, to=1-3]
+	\arrow["{\mu_B}", from=1-3, to=3-3]
+	\arrow["{(>>=)}"', from=1-1, to=3-3, dashed]
+\end{tikzcd}
+\end{center}
+
+So, given an $f$ we are simply composing $\mu$ and $M(f)$. 
+
+What about the other direction? If we have $\text{bind}$ defined, how do we get $\mu$? Well, actually $\text{bind}$ contains all the information we need. Consider $\textbf{bind}_{id}: M \Rightarrow M$. If we input any $M(M(A))$ into bind, we get an output of $M(A)$. It's actually a bit easier to see with Haskell type definitions:
+
+\begin{lstlisting}
+    -- Normal type definition
+    (>>=) :: M a -> (a -> M b) -> M b
+    
+    -- (>>=) with identity and input type a = (M x)
+    (>>=) :: M (M x) -> (M x -> M x) -> M x
+    
+    -- another way to write eta (which is called join in Haskell)
+    join = x >>= id
+    
+    -- for fun, we can define (>>=) via join which is the same as the commutative diagram
+    m >> f = join (fmap f m)
+\end{lstlisting}
+
+By substitution \lstinline{M x} for type \lstinline{a} and the identity for the morphism $f$, we can recover $\mu$. 
+
+Let's take a look at it, using mathematical notation. We can view \textbf{bind} as a function:
+\[ \textbf{bind}: M \times (\mathcal{C} \xrightarrow{f} M) \rightarrow M \]
+
+where $M = M(\mathcal{C})$ is the monad. Then, you can see that if the input to bind is of the form $(M(M(X), id)$, then we recover an $\mu$
+
+As a commutative diagram,
+
+\begin{center}
+\begin{tikzcd}
+	{M(M(A))} && {M(M(A))} \\
+	\\
+	{} && {M(A)}
+	\arrow["{M(id)}", from=1-1, to=1-3]
+	\arrow["{\mu_B}", from=1-3, to=3-3, dashed, swap]
+	\arrow["{(>>=)}"', from=1-1, to=3-3]
+\end{tikzcd}
+\end{center}
+
+Notice that $M(id)$ here is isomorphic, so that the diagram commutes. So, $\textbf{bind}$ is isomorphic to $\mu$ for all $f: \mathcal{C} \rightarrow M$
+
+\subsection{Using Monads in Haskell}
+
+As we discussed earlier in the section about monoidal laws with monads. Monads must satisfy certain axioms for coherence. In Haskell, these must also be true. However, this is not checked for by the compiler so it is up to the programmer to ensure that these hold. These are,
+
+\begin{lstlisting}
+    -- Left Identity
+    (return a) >>= f = f a
+    
+    -- Right Identity
+    m >>= return = m
+    
+    -- Associativity
+    (m >>= f) >>= g = m >>= (\x -> f x >>= g)
+\end{lstlisting}
+
+\subsubsection{Returning to the Bank Example}
+
+Now that we have this concept of monads in Haskell, let's put them to use. Consider a writer monad. Our writer type will be a tuple that holds an object and a string (for logging purposes). Now, we can define a functor and monad for this type.
+
+\begin{lstlisting}
+    -- Create a new type
+    data Writer a = Writer (a, String)
+    
+    -- We can create a Functor that defines the morphisms 
+    instance Functor Writer where
+        fmap :: (a -> b) -> Writer a -> Writer b
+        fmap f (Writer (a, s)) = Writer (f a, s)
+        
+    -- We can now define the Monad
+    instance Monad Writer where
+        return x = Writer (x, "")
+        m (>>=) f = Z where
+          Writer (x, s1) = m
+          Writer (y, s2) = f m
+          Z = Writer(y, s1 ++ s2)
+\end{lstlisting}
+
+So, what are we doing with \lstinline{(>>=)}? We're creating composition between our functions. Now consider what our bank program would look like. 
+
+\begin{lstlisting}
+    -- Now we can define a new login
+    login :: String -> Writer (Int, String)
+    login x = Writer (old_login x, "login")
+    
+    -- and a new withdraw
+    withdraw :: Int -> Writer (Int, String)
+    withdraw x = Writer (old_withdraw x, "withdraw")
+    
+    -- to compose we now use (>>=) bind
+    login x >>= withdraw
+    
+    -- the steps of bind expanded would be
+    -- 1. login x = Writer (old_login x, "login")
+    -- output becomes input
+    -- 2. withdraw (old_login x) = Writer (old_withdraw (old_login x), "withdraw")
+    -- then combine!
+    -- 3. Writer(old_withdraw (old_login x), "login" ++ "withdraw")
+\end{lstlisting}
+
+So, what are the advantages of this approach? For one, we don't need to know how to add things to logs, that's abstracted away by the bind operator. We could easily define a new bind operator that does something slightly different and not have to change every single function that employs the Writer monad. We also keep privacy since we don't see the end result. For each function we only worry about what we want to output to the writer and we don't see anything else.
+
+Let's take a look at some other examples.
+
+\subsubsection{Example: Maybe Monad, Haskell Style}
+
+We've already seen the \lstinline{Maybe} typeclass as a functor. Let's take a look at it as a functor.
+
+\begin{lstlisting}
+    -- As a refresher, here is the type declaration
+    data Maybe a = Just a | Nothing
+    
+    -- Functor definition
+    instance Functor Maybe where
+        fmap :: (a -> b) -> Maybe a -> Maybe b
+        fmap _ Nothing = Nothing
+        fmap f Just x = Just (f x)
+        
+    -- Monad definition
+    instance Monad Maybe a where
+        return :: a -> Maybe a
+        return x = Just x
+        
+        (>>=) :: Maybe a -> (a -> Maybe b) -> Maybe b
+        m >>= f = case m of
+                    Nothing -> Nothing
+                    Just x  -> f x
+\end{lstlisting}
+
+Just like in the category example, the Maybe type is just an extra object \lstinline{Nothing} that's been added to our existing type. \lstinline{Nothing} signifies incomplete or invalid computation, similar to a Null Pointer. 
+
+Using the maybe we can chain together partial computations with the bind operator. Consider for example, a program that finds an ancestor from a family tree.
+
+\begin{lstlisting}
+    -- We have functions that get the mother and father (which may not exist)
+    mother :: Person -> Maybe Person
+    father :: Person -> Maybe Person
+    
+    -- Now we want to get the maternal grandfather
+    maternal_grandfather :: Person -> Maybe Person
+    maternal_grandfather p = (mother p) >>= father
+    
+    -- What about your father's mother's mother's father?
+    some_guy :: Person -> Maybe Person
+    some_guy = father p >>= (\x -> mother x >>= (\y -> mother y >>= (\z -> father x)))
+    -- above, we're just chaining the bind operator. 
+    
+    -- Haskell gives us special notation for this
+    some_guy = do x <- father p
+                y <- mother x
+                z <- mother y
+                father z
+    -- uh oh we've just reinvented imperative programming! :)
+\end{lstlisting}
+
+Without this concept of monads, it would be much more difficult to find some arbitrary ancestor. Notice that if any of the functions return \lstinline{Nothing} the computation will just evaluate to \lstinline{Nothing}, no need to handle this case explicitly. This is of course a toy example, but you can see how this idea of composability is very powerful and scales quite well. 
+
+\subsubsection{List Monad, Haskell Style}
+
+Lists are also monads in Haskell. Let's take a look in Haskell notation.
+
+\begin{lstlisting}
+    -- Remember that the List as a Functor
+    instance Functor [a] where
+        fmap :: (a -> b) -> [a] -> [b]
+        fmap = map
+    
+    -- Definition of the List Monad
+    instance Monad [a] where
+        return :: a -> [a]
+        return x = [x]
+        
+        -- the concat operator simply joins all the lists that are in the list together
+        join :: [[a]] -> [a] 
+        join = concat
+        
+        (>>=) :: [a] -> (a -> [b]) -> [b]
+        m >>= f = concat (fmap f m)
+\end{lstlisting}
+
+What's fun here is that we can see that \lstinline{join} and \lstinline{fmap} really do compose into bind. 
+
+Instead of looking at examples, let's check that \lstinline{List} is indeed a monad by the monad laws.
+
+\textbf{Left Identity}
+\begin{align*}
+    \lstinline{return a >>= f} &= \lstinline{[a] >>= f} \\ 
+    &= \lstinline{concat (fmap f [a])} \\ 
+    &= \lstinline{concat [f a]} \tag*{concatenating a singleton list}\\ 
+    &= \lstinline{f a}
+\end{align*}
+
+\textbf{Right Identity}
+\begin{align*}
+    \lstinline{m >>= return} &= \lstinline{concat (fmap return m)} \\ 
+    &= \lstinline{concat [return m_1, return m_2, ... , return m_n]} \\ 
+    &= \lstinline{concat [[m_1], [m_2], ... , [m_n]}\\ 
+    &= \lstinline{m}
+\end{align*}
+
+\textbf{Associativity}
+
+\begin{align*}
+    \lstinline{(m >>= f) >>= g)} &= \lstinline{(concat (fmap f m) >>= g)} \\
+    &= \lstinline{concat (fmap g (concat (fmap f m)))} \\
+    &= \lstinline{let m = x in concat (fmap g (concat (fmap f x)))} \\
+    &= \lstinline{let m = x in x >>= f >>= g} \\ 
+    &= \lstinline{m >>= (\x -> f x >>= g x)}
+\end{align*}
+
+So, \lstinline{List} is a monad. 
+
+\subsection{Summary of Monads}
+At the end of the day, it is doubtful that every single programmer understands and fully internalizes what exactly monads are and how they are actualized in code, even those fluent in Haskell. Even if it is not absolutely necessary to understand the category theory behind implemented monads, it is definitely essential to how Haskell functions function. We see this all the way from hassle-free error-checking up to simplified composition of what could otherwise be very complicated algorithms. 
+
+And while there isn't one way monads function (for example, a Maybe monad behaves very differently from a List monad), its versatility in its implementation does not take away from the consistently inherent benefits we get from it such as building exceptions into code, having more flexibility with functions (in terms of whenever one might need to adapt new code from old ones), non-determinism, avoiding global variables, and much more.

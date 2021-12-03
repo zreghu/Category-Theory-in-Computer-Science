@@ -1,5 +1,89 @@
 \chapter{Introduction}
-Hello \cite{greenwade93}
-\section{Objectives}
-\section{Challenges}
-\section{Contributions}
+
+In computer science, there are different paradigms of computation. Most popular is object oriented programming (OOP). This paradigm is central in many of the worlds most popular languages such as Java and C++. Object oriented programming is focused around objects. Objects have states and methods which manipulate the internal states. However, another paradigm is functional programming. As its namesake implies, the central focus is the functions themselves. In functional programming, functions are first-class. Functions are composable, they can be passed as arguments into other functions, and in general, they have no second order effects (we'll talk about this later). Its this paradigm of programming that aligns very closely with category theory. Category theory is all about objects and morphisms (arrows). By modeling functions as morphisms in a category, composition takes the format. Category theory offers rich concepts to study the composition of functions. Using category theory concepts, we can better leverage the power of functional programming.
+
+\section{Background Needed}
+In general, basic understanding of category theory is assumed. As this is a MATH371 final project, we do not assume any computer science background or prior experience with Haskell. Because of this, we will do our best to explain Haskell code and syntax and translate those into more familiar notation when necessary. 
+
+\section{Haskell}
+Haskell is a statically typed, purely functional programming language. What does this mean? Statically typed means that once a variable is declared, the type cannot be changed. In general, this adds a level of safety when programming. If you know the type cannot be changed you can program with that assumption. Actually, most variables are immutable in Haskell. This means that once a value is assigned to a variable, that can never be changed.  This brings us to the second descriptor "purely functional". This means that in Haskell, functions are "pure". That is, they don't mutate data. Because of this, in Haskell, functions have predictable inputs and outputs. Given an input, the output will always be the same. This is not a general assumption you can make in programming. This purity allows us to make powerful guarantees about the composition of functions that will allows us to apply category theory to the language.
+
+\subsection{Language Syntax}
+As in all programming languages, typing plays a major role in the language. Types are simply sets of objects. For example the type \lstinline{Int} in Haskell is simply the set of all integers in $\mathbb{Z}$.
+
+\begin{lstlisting}
+    -- Declaring Type in Haskell
+    b :: Int
+    -- Assigning Value
+    b = 23
+    -- This would be invalid assignment since we have declared the type of b to be Int
+    b = "Hello"
+\end{lstlisting}
+
+Another central part of Haskell are functions. To declare a function:
+
+\begin{lstlisting}
+    -- Function Type Definition
+    sum :: Int -> Int -> Int
+    -- Function declaration
+    sum a b = a + b
+\end{lstlisting}
+
+Notice the weird notation \lstinline{Int -> Int -> Int}. In normal mathematical notation, we are declaring some function $\text{sum}: \mathbb{Z} \times \mathbb{Z} \rightarrow \mathbb{Z}$. The last type in a Haskell type declaration is the output of a function and the rest are inputs. Actually, we're cheating a bit since $+$ is already defined in Haskell as a function \lstinline{(+) :: Int -> Int -> Int} which is normal integer addition. The parentheses around the $+$ operator mean that it can be used in between the two parameters to the function. So, in Haskell we can write \lstinline{3 + 4} which is equivalent to \lstinline{sum 3 4}. 
+
+We can also declare our own types as well. Using the \lstinline{data} keyword we can declare new datatypes such as,
+
+\begin{lstlisting}
+    -- type keyword introduces a synonym to an already existing type    
+    type Center = (Float, Float)
+    type Radius = Float
+    -- declare a new data type
+    data Circle = Circle Center Radius
+\end{lstlisting}
+
+We now can define a function using our new type.
+\begin{lstlisting}
+    -- Area of circle function
+    area :: Circle -> Float
+    area (Circle _ r) = pi * r ^ 2
+\end{lstlisting}
+
+As mentioned before, functions are first class in Haskell. 
+This means we can treat them as data types and pass them as argument to functions. Consider a list $[1,2,3,4,5]$. 
+Say we want a function that adds all the elements in the list together. With functional programming, we can generalize this notion. 
+Instead of writing a specific function to do this, we can instead create a function that "collapses" this list together. In the example earlier this was \lstinline{(+)}. In Haskell we call this the \lstinline{fold}.
+
+\begin{lstlisting}
+    -- The fold function definition (notice that it's recursive!)
+    fold :: (a -> b -> b) -> b -> [a] -> b
+    fold f z [] = z
+    fold f z (x:xs) = f z (fold f z xs)
+    
+    -- We can now add all the numbers in our list
+    fold (+) 0 [1,2,3,4,5] = 15
+    
+    -- We can also multiply
+    fold (*) 1 [1,2,3,4,5] = 120
+    
+    -- We now can create a factorial function using fold!
+    fact n = fold (*) 1 [1..n]
+\end{lstlisting}
+
+\subsubsection{Currying}
+Another really important part of functional programming is the ability to curry functions. What the heck is currying? Currying is simply getting a new function by filling in some but not all the arguments of a function. In category theory, this would be,
+\[ \text{Hom}_{\normalfont{Set}}(X \times Y, Z) \cong \text{Hom}_{\normalfont{Set}}(X, \text{Hom}_{\normalfont{Set}}(Y, Z)) \]
+This is adjunction! We have a function $f: X \times Y \rightarrow Z$ and we can create a new function $f' : Y \rightarrow Z$ by passing in some $x \in X$. In Haskell the syntax is simply:
+
+\begin{lstlisting}
+    -- The sum function from earlier
+    sum :: Int -> Int -> Int
+    sum a b = a + b
+    
+    -- currying the function
+    plusTwo :: Int -> Int
+    plusTwo = f 2
+\end{lstlisting}
+
+From our sum function, we now get a new function that takes only one argument and adds two to that argument. That's currying! We'll be seeing a lot more of this for sure.
+
+%% TODO: Talk about classes, instances, lists, and anonymous functions

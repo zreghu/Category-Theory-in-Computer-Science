@@ -10,22 +10,70 @@
 
 %% Useful packages
 \usepackage{amsmath}
+\usepackage{amsfonts}
 \usepackage{graphicx}
+\usepackage{titlesec}
+\usepackage{listings}
+\usepackage{xcolor}
 \usepackage[colorinlistoftodos]{todonotes}
 \usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage{url}
+
+%% Listing Setup
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+%% diagrams
+\usepackage{tikz-cd}
+
+
+\lstdefinestyle{mystyle}{
+  frame=none,
+  xleftmargin=2pt,
+  stepnumber=1,
+  numbers=left,
+  numbersep=5pt,
+  numberstyle=\ttfamily\tiny\color[gray]{0.3},
+  belowcaptionskip=\bigskipamount,
+  captionpos=b,
+  escapeinside={*'}{'*},
+  language=haskell,
+  tabsize=2,
+  emphstyle={\bf},
+  commentstyle=\it,
+  stringstyle=\mdseries\rmfamily,
+  showspaces=false,
+  keywordstyle=\bfseries\rmfamily,
+  columns=flexible,
+  basicstyle=\small\ttfamily,
+  showstringspaces=false,
+  morecomment=[l]\%,
+}
+
+\lstset{style=mystyle}
+
+%% Chapter Header Setup
+\titleformat{\chapter}[block]
+  {\normalfont\huge\bfseries}{\thechapter.}{1em}{\Huge} 
+\titlespacing*{\chapter}{0pt}{-24pt}{12pt}
 
 \begin{document}
 \input{title/title.tex}
 \tableofcontents
 
+\input{notes/notes}
 \input{introduction/introduction.tex}
-\input{background/background.tex}
-\input{project/project.tex}
-\input{evaluation/evaluation.tex}
+\input{functors/functors.tex}
+\input{monoids/monoids.tex}
+\input{monads/monads.tex}
 \input{conclusion/conclusion.tex}
 \input{appendix/appendix.tex}
 
-\bibliographystyle{alpha}
-\bibliography{bibs/sample}
+\bibliographystyle{plain}
+\nocite{*}
+\bibliography{bibs/refs}
 
 \end{document}

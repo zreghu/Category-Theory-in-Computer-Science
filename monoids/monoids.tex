@@ -1,0 +1,116 @@
+\chapter{Monoids}
+\section{Definition, with and without category theory}
+First up, monoids. Recall, in class we learned that monoids are special types of constructions with three main characteristics. Without delving into any category theory, we are essentially dealing with a set of objects, say {\it M} with a binary operation $\ast$ such that
+    \begin{itemize}
+        \item {\it M} is closed under $\ast$
+        \item $\ast$ is unital, i.e. there exists an element {\it e} $\in {\it M}$ such that $\forall m \in {\it M},~ e\ast m = m = m \ast e$
+        \item $\ast$ is associative, that is for $x,y,z \in M,~ x\ast (y\ast z) = (x \ast y) \ast z$
+    \end{itemize}
+Almost exactly a group, but without inverses!
+
+\hfill
+
+In the world of category theory, we recognize that monoids are exactly categories with one object, call $\mathnormal{BM}$ where Ob($\mathnormal{BM}$) $=\{ \star \}$ any fixed one point set. $Hom_{\mathnormal{BM}}(\star, \star) = \mathnormal{M}$ the elements of set $\mathnormal{M}$, and 
+\begin{align*}
+    Hom_{\mathnormal{BM}}(\star, \star) \times Hom_{\mathnormal{BM}}(\star, \star) &\rightarrow Hom_{\mathnormal{BM}}(\star, \star) \\
+    (x,y) &\mapsto x \ast y
+\end{align*}
+
+\section{Monoids in Haskell}
+
+In Haskell, monoids are already a predefined type class that looks like this:
+\begin{lstlisting}
+    class Monoid m where
+        mempty :: m
+        mappend :: m -> m -> m
+        mconcat :: [m]-> m
+        mconcat = foldr mappend mempty
+\end{lstlisting}
+Here,
+\begin{enumerate}
+    \item Our binary operator $\ast$ is \lstinline{mappend} that takes two monoid values and returns a third monoid value. Note that even though it is labeled "append", this does not necessarily mean this function \textit{appends} something. Right now, all we know is that it is a function that begins with two values of one type and returns some value of the same type.
+    
+    Here, \lstinline{x mappend mempty = x = mempty mappend x}.
+    
+    \item Our identity element is \lstinline{mempty} that does not really do anything but return the same value, similar to that of $e$ in our monoid definition above. 
+    
+    Similarly, \lstinline{(x mappend y) mappend z = x mappend (y mappend z)} is associative in Haskell.
+    
+    \item The last function \lstinline{mconcat} is more of a bonus here as \lstinline{mempty} and \lstinline{mappend} usually suffice to instantiate a monoid class. \lstinline{mconcat} here is more of an efficiency tool as it does the same thing as \lstinline{mappend} with the capability of taking in a \textit{list} of monoid values and reducing it to a single value (calling \lstinline{mappend} on the elements of the list). This function is interesting as by itself it is also a monoid function.
+\end{enumerate}
+In Haskell though, our rules of associativity and identity aren't automatically implemented and it is up to the programmer to make these law through code.
+
+\section{Examples}
+
+\subsubsection{Example: Lists} 
+\begin{lstlisting}
+    instance Monoid [a] where 
+        mempty = []
+        mappend = (++)
+\end{lstlisting}
+Here, \lstinline{mempty = []} is the identity, an empty string, and \lstinline{mappend = (++)} is the list concatenation operator taking two lists and combining them into one list. Lists are monoids in this case as any two input of lists returns an output of something that is still of the type list, and this works associatively.
+\begin{lstlisting}
+    ("neverneedy" mappend "everlovely" ) mappend "jewel"
+    "neverneedyeverlovelyjewel"
+    "neverneedy" mappend ("everlovely" mappend "jewel")
+    "neverneedyeverlovelyjewel"
+    "whoseshinereflectsonyou" mappend mempty
+    "whoseshinereflectsonyou"
+\end{lstlisting}
+
+\subsubsection{Example: Product and Sum}
+
+In class, we've identified that nonnegatives integers along with the operator $+$ addition or $*$ are monoids as well. These monoid laws hold with Haskell too. In addition the identity is 0, and multiplication it is 1, exactly the same outside the world of code.
+\begin{lstlisting}
+    0 + 22
+    22
+    (1 + 2) + 3
+    6
+    1 + (2 + 3)
+    6
+\end{lstlisting}
+
+Another way of implementing sums and products as monoids though instantiating these concepts using the monoid class:
+\begin{lstlisting}
+instance Num a => Monoid (Product a) where
+    mempty = Product 1
+    Product x mappend Product y  = Product (x * y)
+\end{lstlisting}
+where you can call it as one would a monoid instance
+\begin{lstlisting}
+    getProduct $ Product 2 mappend 11
+    22
+    getProduct $ Product 22 mappend mempty
+    22
+\end{lstlisting}
+Why someone might prefer calling \lstinline{2 mappend 11} instead of \lstinline{2 * 11}, I'm not too sure myself. But this is definitely a start in understanding how to use monoid instances in Haskell. 
+
+\hfill
+
+Now, \textit{maybe} we should try a more convincing example.
+
+\subsubsection{Example: Maybe}
+\begin{lstlisting}
+    instance Monoid a => Monoid (Maybe a) where
+        mempty = Nothing
+        Nothing mappend m = m
+        m mappend Nothing = m
+        Just m1 mappend Just m2 = Just (m1 mappend m2)
+\end{lstlisting}
+Everything looks familiar, but not too sure what's going on -- let's unwrap this.
+
+In the first line, we instantiate a Monoid of type "a". Here, "a" doesn't necessarily mean any specific type (such as int "Int" or booleans "bool"), "a" is just a general type we're committing to and not changing.
+
+Now the line \lstinline{mempty = Nothing} is our identity element, that is implemented in the next two lines to follow the unital axiom we need for our monoid $(e*m = m = m * e)$.
+
+Now the binary operator \lstinline{mappend} takes in two elements, if either one is the identity, it returns exactly the non-identity element. If neither are the identity, then the contents of the two \lstinline{Just} types get appended into the same \lstinline{Just} type.
+\begin{lstlisting}
+    Nothing mappend Just "Taylor"
+    Just "Taylor"
+    Just (Product 2) mappend Just (Product 11)
+    Just (Product {getProduct = 22})
+\end{lstlisting}
+
+Now, the product monoid instance makes more sense. We can call monoidal product instances with other monoids like the Maybe monoid. Maybe monoids are very important in Haskell as they relieve programmers of the stress of dealing with functions that may have failed (these results will just pass as \lstinline{Nothing}) or when we're dealing with partial functions where you're not entirely sure where every single thing in your domain should land in its image, but you have to define it to go \textit{somewhere} to keep your code working.
+
+We are definitely seeing more of our \lstinline{Maybe} friend later, but now let's talk about something that follows quite naturally -- the \textit{Monad.}

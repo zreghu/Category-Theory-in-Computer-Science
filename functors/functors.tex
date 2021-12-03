@@ -1,0 +1,82 @@
+\chapter{Functors}
+
+Ok, let's talk about functors in Haskell. We're assuming prior knowledge on functors in the categorical sense. As a recap, we have a functor $F: \mathcal{C} \rightarrow \mathcal{D}$. What we want to do is to create a map between different categories. But, categories have two different type of data, we have objects and morphisms. So, what a functor really is is two different maps.
+\begin{align*}
+    F: \mathcal{C} &\rightarrow \mathcal{D} \\
+    C &\mapsto D \\
+    (C \xrightarrow[]{f} C') &\mapsto (F(C) \xrightarrow[]{g} F(C'))
+\end{align*}
+
+So, what does this look like in Haskell? Actually there is an extremely similar notion of this concept in Haskell. In Haskell, a functor is defined like this,
+\begin{lstlisting}
+    class Functor f where
+        fmap :: (a -> b) -> f a -> f b
+\end{lstlisting}
+
+Ok, let's unpack what this Haskell definition is saying. Here, we have this definition for \lstinline{Functor f} which takes in some type \lstinline{f}. For that type we must supply some \lstinline{fmap} operation. Since the type is \lstinline{fmap :: (a -> b) -> f a -> f b} that means fmap takes some function \lstinline{a -> b} and then supplies another function \lstinline{f a -> f b}. Notice that this is exactly like the morphism map with categorical functors. We are taking in some function (a morphism) and we are supplying a new function in our new typeclass \lstinline{f}. 
+
+Ok, so it's not perfectly one to one. We're not really moving to a different category. What we're really doing is moving from our category \lstinline{Hask} to the subset of \lstinline{Hask} that is only the types of \lstinline{f}. So really, a functor is an endofunctor in the category \lstinline{Hask} that takes morphisms in \lstinline{Hask} to a subset. It's a bit weird, but we'll see in some examples why this computationally makes sense. 
+
+\subsubsection{Example: Lst}
+
+So, let's consider the functor \lstinline{Lst}. \lstinline{Lst} is the parametric type list, which is simply a list of some types. For example we can have \lstinline{Lst Int} which is simply a list of ints. In general, we denote this as \lstinline{[Int]}. As a functor, this is,
+\begin{lstlisting}
+    instance Functor Lst where
+        fmap _ []     = []
+        fmap f (x:xs) = f x : fmap f xs
+\end{lstlisting}
+
+Here, we're saying that if we have any function and the empty list, we simply get the empty list. Otherwise, for each item in the list, we apply a function \lstinline{f} to it. In functional programming, this is usually just known as \lstinline{map}. For example, if we have,
+\begin{lstlisting}
+    fmap (+1) [1,2,3,4,5] = [2,3,4,5,6]
+\end{lstlisting}
+
+We can apply the function \lstinline{(+1)} which increments an Int by 1 to the list \lstinline{[1,2,3,4,5]} which applies \lstinline{(+1)} to each element in the list. As we said earlier, \lstinline{fmap} is a way for us to translate functions from \lstinline{Hask} into functions in \lstinline{Lst} which is just the category of list types in Haskell.
+
+\subsubsection{Example: Maybe}
+
+So, let's consider another functor which is the \lstinline{Maybe} parametric type. \lstinline{Maybe} is a way to encode this idea of failed computation. For example, let's define some division function \lstinline{div :: Float -> Float -> Float}. So, \lstinline{div} takes in two arguments $a$ and $b$ and returns $\frac{a}{b}$. But what if $b = 0$. Then we have problems. 
+
+Normally, in programming we solve this by having what's called an exception. This means that the computation fails for some reason. Usually this is for (pun intended) exceptional cases. However, what if dividing by 0 is a normal occurrence in our program and we want to process that and move on? That's when \lstinline{Maybe} really shines. The \lstinline{Maybe} class is defined as,
+
+\begin{lstlisting}
+    data Maybe a = Just a | Nothing} 
+\end{lstlisting}
+
+\lstinline{Just a} is simply something of type \lstinline{a}. Consider it like a container or box around the object. Then we also have \lstinline{Nothing} which is what it sounds like, nothing! 
+
+So if we redefine our \lstinline{div} function from earlier as  \lstinline{div :: Float -> Float -> Maybe Float}, we can encode this idea of failed computation. If \lstinline{div a b} is valid then we return $c = \frac{a}{b}$ as \lstinline{Just c}. If \lstinline{b == 0}, then we return \lstinline{Nothing}. Here's the full function definition,
+
+\begin{lstlisting}
+    div :: Float -> Float -> Maybe Float
+    div _ 0 = Nothing
+    div a b = a / b
+\end{lstlisting}
+
+Now, let's talk about \lstinline{Maybe} as functor. To do this, we only need to define this notion of \lstinline{fmap}.
+
+\begin{lstlisting}
+    instance Functor Maybe where
+        fmap _ Nothing = Nothing
+        fmap f Just x = Just (f x)
+\end{lstlisting}
+
+So, this is a way for us to translate type \lstinline{Maybe a} to type \lstinline{Maybe b}. If it's \lstinline{Nothing}, then we don't do anything! But otherwise we apply our function \lstinline{f} to the item \lstinline{x}.  As you can see, \lstinline{fmap} is a way to translate normal functions into functions over our "new" category which would be the category of \lstinline{Maybe}'s. We'll be seeing a lot more of the \lstinline{Maybe} class in our chapter about monads.
+
+\subsubsection{Functor Laws} 
+
+What about the functor laws? In category theory we have two functor laws. That is $F(id_C) = id_{(F(C))}$ and $F(f \circ g) = F(f) \circ F(g)$. Now what about in Haskell? Well, it turns out that there is the same notion of composability. However, unfortunately this is not enforced by the Haskell compiler. So, it's up to the programmer to ensure that a Functor they define is consistent with these laws. All the standard library functors in Haskell follow this rule. It's also not too hard to check. So, in Haskell this would be,
+
+\begin{lstlisting}
+    -- Functor Laws
+    fmap id = id
+    fmap (f . g) = fmap f . fmap g
+\end{lstlisting}
+
+If we were to check with \lstinline{Maybe} and \lstinline{Lst}, we would be able to see that this is indeed true with their implementations.
+
+% TODO: Parametric datatypes in introduction?
+
+
+
+
